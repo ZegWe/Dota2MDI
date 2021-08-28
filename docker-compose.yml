@@ -1,0 +1,14 @@
+version: '3.0'
+services: 
+  chrome:
+    image: chromedp/headless-shell
+    shm_size: 2G
+    restart: always
+
+  dota2mdi:
+    build: .
+    depends_on: 
+      - chrome
+    ports: 
+      - "8080:8080"
+    restart: always

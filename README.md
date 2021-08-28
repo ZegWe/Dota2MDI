@@ -1,0 +1,1 @@
+# Dota2MDI - Dota2 Match Detail Image tool
