@@ -39,7 +39,7 @@ func handle(wd selenium.WebDriver) http.HandlerFunc {
 		log.Printf("start")
 		id := r.URL.Query().Get("id")
 		log.Printf(id)
-		err := wd.Get("https://www.dotabuff.com/matches/6153272077")
+		err := wd.Get(url+id)
 		if err != nil {
 			panic(err)
 		}
