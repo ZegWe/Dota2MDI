@@ -1,14 +1,13 @@
 version: '3.0'
 services: 
-  chrome:
-    image: chromedp/headless-shell
-    shm_size: 2G
+  phantomjs:
+    image: wernight/phantomjs
     restart: always
-
+    command: phantomjs --webdriver=9222
   dota2mdi:
     build: .
     depends_on: 
-      - chrome
+      - phantomjs
     ports: 
       - "8080:8080"
     restart: always

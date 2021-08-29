@@ -1,3 +1,4 @@
 test.go
 .vscode/
 .gitignore
+.DS_Store

@@ -3,58 +3,55 @@
 package main
 
 import (
-	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"runtime"
 
-	"github.com/chromedp/chromedp"
-	"github.com/chromedp/chromedp/device"
+	"github.com/tebeka/selenium"
 )
 
-var chromeCtx context.Context
-var url string
+var url string = `https://www.dotabuff.com/matches/`
 
 func main() {
-	// create context
-	allocator, cancel := chromedp.NewRemoteAllocator(
-			context.Background(),
-			"ws://chrome:9222",
-		)
-	defer cancel()
-	chromeCtx, _ = chromedp.NewContext(
-		allocator,
-		// chromedp.WithDebugf(log.Printf),
-	)
-	// chromedp.Run(ctx, chromedp.Tasks{})
-	url = `https://www.dotabuff.com/matches/`
+	wd, _ := selenium.NewRemote(selenium.Capabilities{}, "http://phantomjs:9222")
+	id, _ := wd.CurrentWindowHandle()
+	wd.ResizeWindow(id, 1200, 1080)
+
 	log.Printf("initialized")
-	// capture screenshot of an element
-	http.HandleFunc("/match", handle)
+	http.HandleFunc("/match", handle(wd))
 	http.ListenAndServe(":8080", nil)
 }
 
-func handle(w http.ResponseWriter, r *http.Request) {
+func handle(wd selenium.WebDriver) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				buf := make([]byte, 1<<16)
+				runtime.Stack(buf, true)
+				ret := fmt.Sprintf("error: %v\n%v", err, string(buf))
+				w.Header().Set("Content-Type", "text")
+				w.Write([]byte(ret))
+				log.Print(ret)
+				return
+			}
+		}()
 		log.Printf("start")
-		var buf []byte
 		id := r.URL.Query().Get("id")
 		log.Printf(id)
-		if _, err := chromedp.RunResponse(chromeCtx, elementScreenshot(url+id, `.match-show`, &buf)); err != nil {
-			log.Println(err)
-			w.Header().Set("Content-Type", "text")
-			w.Write([]byte("wrong"))
-			return
+		err := wd.Get("https://www.dotabuff.com/matches/6153272077")
+		if err != nil {
+			panic(err)
+		}
+		log.Printf("navigate")
+		buf, err := wd.Screenshot()
+		if err != nil {
+			panic(err)
 		}
 		log.Printf("get")
-		
+
 		w.Header().Set("Content-Type", "image/png")
 		w.Write(buf)
 		log.Printf("ok")
-	}
-// elementScreenshot takes a screenshot of a specific element.
-func elementScreenshot(urlstr, sel string, res *[]byte) chromedp.Tasks {
-	return chromedp.Tasks{
-		chromedp.Emulate(device.IPadPro),
-		chromedp.Navigate(urlstr),
-		chromedp.Screenshot(sel, res, chromedp.NodeVisible),
 	}
 }
